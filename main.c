@@ -17,6 +17,18 @@ enum exitcode {
     EXIT_OTHER = 2
 };
 
+typedef struct flag_s {
+    const char* flag;
+    const char* details;
+} flag_t;
+
+#define FLAG_NR 3
+static flag_t flag_map[] = {
+        {"<destination>", "dns name or ip address"},
+        {"-h", "help"},
+        {"-v", "verbose"}
+};
+
 typedef struct s_options {
     bool verbose;
     char* hostname;
@@ -28,11 +40,11 @@ void help(char invalid_flag) {
     }
     printf("\nUsage\n"
            "  ft_ping [options] <destination>\n"
-           "Options:\n"
-           "  %-15sdns name or ip address\n"
-           "  %-15sprint help and exit\n"
-           "  %-15sverbose output\n",
-           "<destination>", "-h", "-v");
+           "Options:\n");
+    for (int i = 0; i < FLAG_NR; ++i) {
+        printf("  %-15s%s\n", flag_map[i].flag, flag_map[i].details);
+    }
+
     exit(EXIT_OTHER);
 }
 
