@@ -41,7 +41,7 @@ void help(char invalid_flag) {
            "  ft_ping [options] <destination>\n"
            "Options:\n");
     unsigned int len = sizeof(flag_map) > 0 ? sizeof(flag_map) / sizeof flag_map[0] : 0;
-    for (int i = 0; i < len; ++i) {
+    for (unsigned int i = 0; i < len; ++i) {
         printf("  %-15s%s\n", flag_map[i].flag, flag_map[i].details);
     }
 
@@ -54,11 +54,12 @@ options_t parse_args(int ac, char **av) {
     ret_val.hostname = NULL;
     for (int i = 1; i < ac; ++i) {
         if (av[i][0] == '-') {
-            for (int j = 1; j < strlen(av[i]); ++j) {
+            for (unsigned int j = 1; j < strlen(av[i]); ++j) {
                 switch (av[i][j])
                 {
                     case 'h':
                         help(0);
+                        break;
                     case 'v':
                         ret_val.verbose = true;
                         break;
@@ -80,6 +81,7 @@ options_t parse_args(int ac, char **av) {
 }
 
 void sigint_handler(int param) {
+    (void)param;
     // print result
     exit(EXIT_OK);
 }
