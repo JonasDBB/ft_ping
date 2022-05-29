@@ -22,7 +22,6 @@ typedef struct flag_s {
     const char* details;
 } flag_t;
 
-#define FLAG_NR 3
 static flag_t flag_map[] = {
         {"<destination>", "dns name or ip address"},
         {"-h", "help"},
@@ -41,7 +40,8 @@ void help(char invalid_flag) {
     printf("\nUsage\n"
            "  ft_ping [options] <destination>\n"
            "Options:\n");
-    for (int i = 0; i < FLAG_NR; ++i) {
+    unsigned int len = sizeof(flag_map) > 0 ? sizeof(flag_map) / sizeof flag_map[0] : 0;
+    for (int i = 0; i < len; ++i) {
         printf("  %-15s%s\n", flag_map[i].flag, flag_map[i].details);
     }
 
