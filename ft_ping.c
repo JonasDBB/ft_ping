@@ -48,6 +48,9 @@ options_t parse_args(int ac, char **av) {
                 }
             }
         } else {
+            if (ret_val.nr_of_hosts >= 10) {
+                help(0);
+            }
             ret_val.hostname[ret_val.nr_of_hosts++] = av[i];
         }
     }
@@ -55,19 +58,19 @@ options_t parse_args(int ac, char **av) {
         printf("ft_ping: usage error: Destination address required\n");
         exit(EXIT_ERR);
     }
-    if (ret_val.nr_of_hosts > 10) {
-        help(0);
-    }
     return ret_val;
 }
 
+#define SILENCE_END
 void end(const char* hostname) {
+#ifndef SILENCE_END
     printf("--- %s ft_ping statistics ---\n", hostname);
     printf("%d packets transmitted, %d received, %d%% packet loss, time %fms\n", 0, 0, 0, 0.f);
     printf("rtt min/avg/max/mdev = %f/%f/%f/%f ms\n", 0.f, 0.f, 0.f, 0.f);
-
-
+#else
+    (void)hostname;
     printf("result here later, exiting cleanly");
+#endif
     exit(EXIT_OK);
 }
 
@@ -78,7 +81,7 @@ void sigint_handler(int param) {
 }
 
 void fatal_err(const char* err) {
-    dprintf(2, "fatal error: %s\n", err);
+    dprintf(STDERR_FILENO, "fatal error: %s\nerrno: %d\n", err, errno);
     perror("error: ");
     exit(EXIT_OTHER);
 }
@@ -105,9 +108,16 @@ int main(int ac, char **av)
     hints.ai_socktype = SOCK_RAW;
 
     struct addrinfo* ai = NULL;
-    if (getaddrinfo(opts.hostname[0], NULL, &hints, &ai) != 0) {
+    int ret = getaddrinfo(opts.hostname[0], NULL, &hints, &ai);
+    if (ret != 0) {
         freeaddrinfo(ai);
-        fatal_err("getaddrinfo fail");
+        if (ret == EAI_NONAME) {
+            dprintf(STDERR_FILENO, "ft_ping: %s: Temporary failure in name resolution\n", opts.hostname[0]);
+            exit(EXIT_OTHER);
+
+        } else {
+            fatal_err("getaddrinfo fail");
+        }
     }
 
     struct addrinfo* list;
