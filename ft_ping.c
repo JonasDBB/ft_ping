@@ -1,17 +1,14 @@
 #include <stdio.h>
 #include <unistd.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <sys/time.h>
 #include <arpa/inet.h>
 #include <stdlib.h>
 #include <signal.h>
-#include <stdbool.h>
-#include <string.h>
 #include <iso646.h>
-#include <errno.h>
 
+#include "ft_clib.h"
 #include "ft_ping.h"
 
 void help(char invalid_flag) {
@@ -31,10 +28,10 @@ void help(char invalid_flag) {
 
 options_t parse_args(int ac, char **av) {
     options_t ret_val;
-    bzero(&ret_val, sizeof(ret_val));
+    ft_bzero(&ret_val, sizeof(ret_val));
     for (int i = 1; i < ac; ++i) {
         if (av[i][0] == '-') {
-            for (unsigned int j = 1; j < strlen(av[i]); ++j) {
+            for (unsigned int j = 1; j < ft_strlen(av[i]); ++j) {
                 switch (av[i][j])
                 {
                     case 'h':
@@ -61,7 +58,6 @@ options_t parse_args(int ac, char **av) {
     return ret_val;
 }
 
-#define SILENCE_END
 void end(const char* hostname) {
 #ifndef SILENCE_END
     printf("--- %s ft_ping statistics ---\n", hostname);
@@ -74,28 +70,10 @@ void end(const char* hostname) {
     exit(EXIT_OK);
 }
 
-void sigint_handler(int param) {
-    (void)param;
-    printf("sigint handler");
-    end("HOST_PLACEHOLDER");
-}
-
-void fatal_err(const char* err) {
-    dprintf(STDERR_FILENO, "fatal error: %s\nerrno: %d\n", err, errno);
-    perror("error: ");
-    exit(EXIT_OTHER);
-}
-
-void send_sigint_to_self() {
-    kill(getpid(), SIGINT);
-}
-
-float get_time_since_in_ms(const struct timeval *first, const struct timeval *second) {
-    return ((second->tv_sec - first->tv_sec) * 1000 + (second->tv_usec - first->tv_usec) / 1000.0f);
-}
-
 int main(int ac, char **av)
 {
+    print_os_name();
+
     struct timeval start_time;
     gettimeofday(&start_time, NULL);
 
@@ -103,7 +81,7 @@ int main(int ac, char **av)
     options_t opts = parse_args(ac, av);
 
     struct addrinfo hints;
-    bzero(&hints, sizeof(hints));
+    ft_bzero(&hints, sizeof(hints));
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_RAW;
 
@@ -112,7 +90,7 @@ int main(int ac, char **av)
     if (ret != 0) {
         freeaddrinfo(ai);
         if (ret == EAI_NONAME) {
-            dprintf(STDERR_FILENO, "ft_ping: %s: Temporary failure in name resolution\n", opts.hostname[0]);
+            fprintf(stderr, "ft_ping: %s: Temporary failure in name resolution\n", opts.hostname[0]);
             exit(EXIT_OTHER);
 
         } else {
