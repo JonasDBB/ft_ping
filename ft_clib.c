@@ -6,17 +6,15 @@ size_t ft_strlen(const char *s) {
     return ret;
 }
 
-#define TYPE long long
-#define TYPE_SIZE sizeof(TYPE)
 void *ft_memset(void *b, int c, size_t len) {
-    unsigned char buf[TYPE_SIZE];
-    for (unsigned int i = 0; i < TYPE_SIZE; ++i) {
+    unsigned char buf[MEMSET_TYPE_SIZE];
+    for (unsigned int i = 0; i < MEMSET_TYPE_SIZE; ++i) {
         buf[i] = (unsigned char)c;
     }
 
-    TYPE *created_type = (TYPE*)buf;
-    TYPE *type_ptr = (TYPE*)b;
-    for (; len > TYPE_SIZE; len -= TYPE_SIZE, ++type_ptr) {
+    MEMSET_TYPE *created_type = (MEMSET_TYPE*)buf;
+    MEMSET_TYPE *type_ptr = (MEMSET_TYPE*)b;
+    for (; len > MEMSET_TYPE_SIZE; len -= MEMSET_TYPE_SIZE, ++type_ptr) {
         *type_ptr = *created_type;
     }
 
@@ -24,7 +22,6 @@ void *ft_memset(void *b, int c, size_t len) {
     for (; len; --len, ++char_ptr) {
         *char_ptr = (unsigned char)c;
     }
-
     return b;
 }
 

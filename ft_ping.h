@@ -17,12 +17,6 @@ typedef struct flag_s {
     const char* details;
 } flag_t;
 
-static flag_t flag_map[] = {
-        {"<destination>", "dns name or ip address"},
-        {"-h", "help"},
-        {"-v", "verbose"}
-};
-
 typedef struct s_options {
     bool verbose;
     char* hostname[10];

@@ -7,20 +7,27 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <iso646.h>
+#include <netinet/ip_icmp.h>
 
 #include "ft_clib.h"
 #include "ft_ping.h"
 
+static flag_t flag_map[] = {
+        {"<destination>", "dns name or ip address"},
+        {"-h", "help"},
+        {"-v", "verbose"}
+};
+
 void help(char invalid_flag) {
     if (invalid_flag) {
-        printf("ft_ping: invalid option -- '%c'\n", invalid_flag);
+        fprintf(stderr, "ft_ping: invalid option -- '%c'\n", invalid_flag);
     }
-    printf("\nUsage\n"
+    fprintf(stderr, "\nUsage\n"
            "  ft_ping [options] <destination>\n"
            "Options:\n");
     const unsigned int len = sizeof(flag_map) > 0 ? sizeof(flag_map) / sizeof flag_map[0] : 0;
     for (unsigned int i = 0; i < len; ++i) {
-        printf("  %-15s%s\n", flag_map[i].flag, flag_map[i].details);
+        fprintf(stderr, "  %-15s%s\n", flag_map[i].flag, flag_map[i].details);
     }
 
     exit(EXIT_OTHER);
@@ -92,7 +99,6 @@ int main(int ac, char **av)
         if (ret == EAI_NONAME) {
             fprintf(stderr, "ft_ping: %s: Temporary failure in name resolution\n", opts.hostname[0]);
             exit(EXIT_OTHER);
-
         } else {
             fatal_err("getaddrinfo fail");
         }
@@ -104,6 +110,32 @@ int main(int ac, char **av)
         struct sockaddr_in* s = (struct sockaddr_in*)list->ai_addr;
         printf("ip is %s\n", inet_ntop(AF_INET, &s->sin_addr, buf, sizeof(buf)));
     }
+
+    int sck = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
+    if (sck < 0) {
+        fatal_err("socket failure");
+    }
+
+    unsigned char buf[1000];
+    ft_bzero(buf, 1000);
+    struct icmphdr *icmp;
+
+    icmp = (struct icmphdr*)buf;
+    icmp->type = ICMP_ECHO;
+    icmp->code = 0;
+    icmp->checksum = 0;
+    icmp->un.echo.id = getpid();
+    static int counter = 0;
+    icmp->un.echo.sequence = counter++;
+    // compute checksum
+
+    ssize_t sendret = sendto(sck, icmp, sizeof(icmp), 0, (struct sockaddr*)list->ai_addr,
+                         sizeof(list->ai_addr));
+    if (sendret < 0) {
+        fatal_err("sendto error");
+    }
+
+
     fflush(stdout);
     freeaddrinfo(ai);
     end(av[0]);
