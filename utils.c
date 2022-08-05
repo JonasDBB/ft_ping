@@ -5,18 +5,17 @@
 #include <unistd.h>
 #include <sys/time.h>
 
-#include "ft_clib.h"
 #include "ft_ping.h"
 
 void sigint_handler(int param) {
     (void)param;
-    printf("sigint handler");
+    fprintf(stderr, "\nsigint handler\n");
     end("HOST_PLACEHOLDER");
 }
 
 void fatal_err(const char* err) {
     fprintf(stderr, "fatal error: %s\nerrno: %d\n", err, errno);
-    perror("error: ");
+    perror("description");
     exit(EXIT_OTHER);
 }
 

@@ -5,6 +5,7 @@
 #include <sys/time.h>
 
 #define SILENCE_END
+#define PCKT_SIZE 64
 
 enum exitcode {
     EXIT_OK = 0,
@@ -12,10 +13,11 @@ enum exitcode {
     EXIT_OTHER = 2
 };
 
-typedef struct flag_s {
-    const char* flag;
-    const char* details;
-} flag_t;
+typedef struct str_str_pair_s {
+    const char* first;
+    const char* second;
+} str_str_pair_t;
+
 
 typedef struct s_options {
     bool verbose;
