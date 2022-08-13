@@ -7,11 +7,22 @@
 
 #include "ft_ping.h"
 
+extern bool active;
+extern bool send_next_msg;
+
 void sigint_handler(int param) {
     (void)param;
+    active = false;
     fprintf(stderr, "\nsigint handler\n");
     end("HOST_PLACEHOLDER");
 }
+
+void sigalrm_handler(int i) {
+    (void)i;
+    signal(SIGALRM, sigalrm_handler);
+    send_next_msg = true;
+}
+
 
 void fatal_err(const char* err) {
     fprintf(stderr, "fatal error: %s\nerrno: %d\n", err, errno);
@@ -19,7 +30,7 @@ void fatal_err(const char* err) {
     exit(EXIT_OTHER);
 }
 
-float get_time_since_in_ms(const struct timeval *first, const struct timeval *second) {
+float get_time_since_in_ms(const struct timeval* first, const struct timeval* second) {
     return ((second->tv_sec - first->tv_sec) * 1000 + (second->tv_usec - first->tv_usec) / 1000.0f);
 }
 
