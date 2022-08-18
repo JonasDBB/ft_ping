@@ -6,15 +6,14 @@
 #include <sys/time.h>
 
 #include "ft_ping.h"
+#include "ft_clib.h"
 
 extern bool active;
 extern bool send_next_msg;
 
-void sigint_handler(int param) {
-    (void)param;
+void sigint_handler(int i) {
+    (void)i;
     active = false;
-    fprintf(stderr, "\nsigint handler\n");
-    end("HOST_PLACEHOLDER");
 }
 
 void sigalrm_handler(int i) {
@@ -23,19 +22,14 @@ void sigalrm_handler(int i) {
     send_next_msg = true;
 }
 
-
 void fatal_err(const char* err) {
-    fprintf(stderr, "fatal error: %s\nerrno: %d\n", err, errno);
+    fprintf(stderr, "fatal error: %s\nerrno %d: %s\n", err, errno, errno_name(errno));
     perror("description");
     exit(EXIT_OTHER);
 }
 
 float get_time_since_in_ms(const struct timeval* first, const struct timeval* second) {
     return ((second->tv_sec - first->tv_sec) * 1000 + (second->tv_usec - first->tv_usec) / 1000.0f);
-}
-
-void send_sigint_to_self() {
-    kill(getpid(), SIGINT);
 }
 
 #include <sys/utsname.h>

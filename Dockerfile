@@ -26,4 +26,6 @@ RUN useradd -m user \
   && yes <placeholder> | passwd user \
   && usermod -s /bin/bash user \
   && yes <placeholder> | passwd root
+ENV TZ="Europe/Amsterdam"
+RUN date
 CMD ["/usr/sbin/sshd", "-D", "-e", "-f", "/etc/ssh/sshd_config_test_clion"]

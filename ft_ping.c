@@ -1,20 +1,18 @@
 #include <stdio.h>
 #include <unistd.h>
-#include <sys/socket.h>
 #include <netdb.h>
-#include <sys/time.h>
-#include <arpa/inet.h>
 #include <stdlib.h>
 #include <signal.h>
-#include <iso646.h>
 #include <netinet/ip_icmp.h>
 
 #include "ft_clib.h"
 #include "ft_ping.h"
 
-static str_str_pair_t flag_map[] = {
+static const str_str_pair_t flag_map[] = {
         {"<destination>", "dns name or ip address"},
+        {"-a", "use audible ping"},
         {"-h", "help"},
+        {"-i <interval>", "seconds between sending each packet"},
         {"-v", "verbose"}
 };
 
@@ -22,7 +20,9 @@ bool active = true;
 bool send_next_msg = true;
 
 void help(char invalid_flag) {
-    if (invalid_flag) {
+    if (invalid_flag == 'i') {
+        fprintf(stderr, "ft_ping: option requires an argument -- '%c'\n", invalid_flag);
+    } else if (invalid_flag) {
         fprintf(stderr, "ft_ping: invalid option -- '%c'\n", invalid_flag);
     }
     fprintf(stderr, "\nUsage\n"
@@ -36,15 +36,42 @@ void help(char invalid_flag) {
     exit(EXIT_OTHER);
 }
 
+int get_interval(char* s) {
+    for (uint i = 0; i < ft_strlen(s); ++i) {
+        if (!ft_isnum(s[i])) {
+            fprintf(stderr, "ft_ping: bad timing interval: %s\n", s);
+            exit(EXIT_OTHER);
+        }
+    }
+    // TODO: write ft_strtol / ft_stroul
+    return atoi(s);
+}
+
 options_t parse_args(int ac, char** av) {
     options_t ret_val;
     ft_bzero(&ret_val, sizeof(ret_val));
+    ret_val.interval = -1;
+    bool prev_was_interval = false;
     for (int i = 1; i < ac; ++i) {
+        if (prev_was_interval) {
+            prev_was_interval = false;
+            continue;
+        }
         if (av[i][0] == '-') {
             for (unsigned int j = 1; j < ft_strlen(av[i]); ++j) {
                 switch (av[i][j]) {
+                    case 'a':
+                        ret_val.alarm = true;
+                        break;
                     case 'h':
                         help(0);
+                        break;
+                    case 'i':
+                        if (ac <= i + 1) {
+                            help('i');
+                        }
+                        prev_was_interval = true;
+                        ret_val.interval = get_interval(av[i + 1]);
                         break;
                     case 'v':
                         ret_val.verbose = true;
@@ -54,14 +81,14 @@ options_t parse_args(int ac, char** av) {
                 }
             }
         } else {
-            if (ret_val.nr_of_hosts >= 10) {
+            if (ret_val.hostname != NULL) {
                 help(0);
             }
-            ret_val.hostname[ret_val.nr_of_hosts++] = av[i];
+            ret_val.hostname = av[i];
         }
     }
-    if (ret_val.nr_of_hosts == 0) {
-        printf("ft_ping: usage error: Destination address required\n");
+    if (ret_val.hostname == NULL) {
+        fprintf(stderr, "ft_ping: usage error: Destination address required\n");
         exit(EXIT_ERR);
     }
     return ret_val;
@@ -74,9 +101,9 @@ void end(const char* hostname) {
     printf("rtt min/avg/max/mdev = %f/%f/%f/%f ms\n", 0.f, 0.f, 0.f, 0.f);
 #else
     (void)hostname;
-    printf("result here later, exiting cleanly...\n");
+    printf("...results...\n");
 #endif
-    exit(EXIT_OK);
+//    exit(EXIT_OK);
 }
 
 int main(int ac, char** av) {
@@ -88,7 +115,7 @@ int main(int ac, char** av) {
     options_t opts = parse_args(ac, av);
     struct addrinfo* ai = find_addr_info(&opts);
     const int sockfd = socket_setup();
-    const static_info_t static_info = set_ip_info(ai);
+    const static_info_t static_info = set_ip_info(ai, &opts);
 
     unsigned char buffer[PCKT_SIZE + sizeof(struct iphdr)];
     ft_bzero(buffer, PCKT_SIZE + sizeof(struct iphdr));
@@ -98,19 +125,19 @@ int main(int ac, char** av) {
     received_msg_t received_msg;
 
     msg_init(icmp, &received_msg);
-
+    int ping_interval = opts.interval != -1 ? opts.interval : INTERVAL;
     while (active) {
         if (send_next_msg) {
             LOG("send_next_msg");
             send_next_msg = false;
-            alarm(2);
-            ping_loop(sockfd, ai, icmp, &received_msg, &static_info);
+            alarm(ping_interval);
+            ping(sockfd, ai, icmp, &received_msg, &static_info);
             LOG("done");
         }
     }
-
+    LOG("exiting")
     freeaddrinfo(ai);
     close(sockfd);
     end(av[0]);
-    return 0;
+    return EXIT_OK;
 }

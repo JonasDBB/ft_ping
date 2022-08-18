@@ -16,25 +16,25 @@ struct addrinfo* find_addr_info(options_t* opts) {
     hints.ai_socktype = SOCK_RAW;
 
     struct addrinfo* ai = NULL;
-    int ret = getaddrinfo(opts->hostname[0], NULL, &hints, &ai);
+    int ret = getaddrinfo(opts->hostname, NULL, &hints, &ai);
     if (ret != 0) {
         freeaddrinfo(ai);
         char buf[28];
         switch (ret) {
             case EAI_NONAME:
-                fprintf(stderr, "ft_ping: %s: Name or service not known\n", opts->hostname[0]);
+                fprintf(stderr, "ft_ping: %s: Name or service not known\n", opts->hostname);
                 exit(EXIT_OTHER);
             case EAI_AGAIN:
-                fprintf(stderr, "ft_ping: %s: Temporary failure in name resolution\n", opts->hostname[0]);
+                fprintf(stderr, "ft_ping: %s: Temporary failure in name resolution\n", opts->hostname);
                 exit(EXIT_OTHER);
             case EAI_MEMORY:
-                fprintf(stderr, "ft_ping: %s: Memory allocation failure\n", opts->hostname[0]);
+                fprintf(stderr, "ft_ping: %s: Memory allocation failure\n", opts->hostname);
                 exit(EXIT_OTHER);
             case EAI_SYSTEM:
-                fprintf(stderr, "ft_ping: %s: System error returned in `errno'\n", opts->hostname[0]);
+                fprintf(stderr, "ft_ping: %s: System error returned in `errno'\n", opts->hostname);
                 exit(EXIT_OTHER);
             case EAI_OVERFLOW:
-                fprintf(stderr, "ft_ping: %s: Argument buffer overflow\n", opts->hostname[0]);
+                fprintf(stderr, "ft_ping: %s: Argument buffer overflow\n", opts->hostname);
                 exit(EXIT_OTHER);
             default:
                 ft_bzero(buf, 28);
@@ -55,18 +55,20 @@ int socket_setup() {
     if (setsockopt(sockfd, IPPROTO_IP, IP_TTL, &ttl_val, sizeof(ttl_val)) != 0) {
         fatal_err("setsockopt err");
     }
-    struct timeval timeout;
-    timeout.tv_sec = 1;
-    timeout.tv_usec = 0;
-    if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout)) != 0) {
-        fatal_err("setsockopt err");
-    }
+//    struct timeval timeout;
+//    timeout.tv_sec = 1;
+//    timeout.tv_usec = 0;
+//    if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout)) != 0) {
+//        fatal_err("setsockopt err");
+//    }
     return sockfd;
 }
 
-static_info_t set_ip_info(struct addrinfo* ai) {
+static_info_t set_ip_info(struct addrinfo* ai, options_t* opts)
+{
     static_info_t ret;
 
+    ret.alarm = opts->alarm;
     ft_bzero(ret.ip_addr_str, INET_ADDRSTRLEN);
     struct sockaddr_in* ipn = (struct sockaddr_in*)ai->ai_addr;
     inet_ntop(AF_INET, &ipn->sin_addr, ret.ip_addr_str, sizeof(ret.ip_addr_str));
@@ -82,7 +84,7 @@ void msg_init(struct icmphdr* icmp, received_msg_t* recv_msg) {
     icmp->type = ICMP_ECHO;
     icmp->code = 0;
     icmp->checksum = 0;
-    icmp->un.echo.id = getpid();
+    icmp->un.echo.id = htons(getpid());
 
     ft_bzero(&recv_msg->msg_hdr, sizeof(struct msghdr));
     ft_bzero(recv_msg->iovbuf, 128);

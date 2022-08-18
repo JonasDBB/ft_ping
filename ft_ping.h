@@ -9,6 +9,7 @@
 #define SILENCE_END
 #define PCKT_SIZE 64
 #define MAX_RECV_LEN 128
+#define INTERVAL 1
 
 enum exitcode {
     EXIT_OK = 0,
@@ -24,8 +25,9 @@ typedef struct str_str_pair_s {
 
 typedef struct options_s {
     bool verbose;
-    char* hostname[10];
-    unsigned int nr_of_hosts;
+    bool alarm;
+    int interval;
+    char* hostname;
 } options_t;
 
 typedef struct received_msg_s {
@@ -40,28 +42,28 @@ typedef struct static_info_s {
     struct timeval* start_time;
     char ip_addr_str[INET_ADDRSTRLEN];
     char host_name[NI_MAXHOST];
+    bool alarm;
 } static_info_t;
 
 // ft_ping.c
 void end(const char* hostname);
 
 // utils.c
-void sigint_handler(int param);
+void sigint_handler(int i);
 void sigalrm_handler(int i);
 void fatal_err(const char* err);
 float get_time_since_in_ms(const struct timeval* first, const struct timeval* second);
 
-// ping_loop.c
-void ping_loop(int sockfd, struct addrinfo* ai, struct icmphdr* icmp, received_msg_t* rec_msg, const static_info_t* info);
+// ping.c
+void ping(int sockfd, struct addrinfo* ai, struct icmphdr* icmp, received_msg_t* rec_msg, const static_info_t* info);
 
 // setup.c
 struct addrinfo* find_addr_info(options_t* opts);
 int socket_setup();
-static_info_t set_ip_info(struct addrinfo* ai);
+static_info_t set_ip_info(struct addrinfo* ai, options_t* opts);
 void msg_init(struct icmphdr* icmp, received_msg_t* recv_msg);
 
 // remove later
-void send_sigint_to_self();
 void print_os_name();
 
 

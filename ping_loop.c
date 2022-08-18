@@ -25,10 +25,11 @@ static unsigned short checksum(void* addr, size_t count) {
 }
 
 static void send_icmp_message(int sockfd, struct icmphdr* icmp, struct timeval* before, struct addrinfo* ai) {
-    static int counter = 0;
+    static uint16_t counter = 0;
     icmp->checksum = 0;
+    icmp->un.echo.sequence = htons(counter++);
     icmp->checksum = checksum(icmp, PCKT_SIZE);
-    icmp->un.echo.sequence = counter++;
+
     gettimeofday(before, 0);
     ssize_t sendret = sendto(sockfd, icmp, PCKT_SIZE, 0, (struct sockaddr*)ai->ai_addr, sizeof(*ai->ai_addr));
     if (sendret < 0) {
@@ -37,7 +38,7 @@ static void send_icmp_message(int sockfd, struct icmphdr* icmp, struct timeval* 
     LOG("sendret %d", sendret);
 }
 
-void ping_loop(int sockfd, struct addrinfo* ai, struct icmphdr* icmp, received_msg_t* rec_msg, const static_info_t* info) {
+void ping(int sockfd, struct addrinfo* ai, struct icmphdr* icmp, received_msg_t* rec_msg, const static_info_t* info) {
     struct timeval before;
     struct timeval after;
 
@@ -50,18 +51,21 @@ void ping_loop(int sockfd, struct addrinfo* ai, struct icmphdr* icmp, received_m
     }
 
     if (rec_msg->icmp_reply->type != ICMP_ECHOREPLY) {
-        fprintf(stderr, "icmp reply type is wrong\nSTILL NEED TO HANDLE\n");
+        fprintf(stderr, "icmp reply type is wrong\nNO ERROR YET\n");
     }
     int csfailed = checksum(rec_msg->icmp_reply, PCKT_SIZE);
     if (csfailed) {
-        fprintf(stderr, "bad checksum\nSTILL NEED TO HANDLE\n");
+        fprintf(stderr, "bad checksum\nNO ERROR YET\n");
     }
-    if (rec_msg->icmp_reply->un.echo.id != getpid()) {
-        fprintf(stderr, "echo meant for other process\nSTILL NEED TO HANDLE\n");
+    if (rec_msg->icmp_reply->un.echo.id != (htons(getpid()))) {
+        fprintf(stderr, "echo meant for other process\nNO ERROR YET\n");
     }
 
     double timedif = get_time_since_in_ms(&before, &after);
 
-    printf("%d bytes from %s (%s): icmp_seq=%d ttl=%d time=%.2f ms\n", PCKT_SIZE,
+    if (info->alarm) {
+        printf("\a");
+    }
+    printf(CLR_GRN"%d bytes from %s (%s): icmp_seq=%d ttl=%d time=%.2f ms"CLR_RESET"\n", PCKT_SIZE,
            info->host_name, info->ip_addr_str, icmp->un.echo.sequence + 1, rec_msg->ip_hdr->ttl, timedif);
 }
