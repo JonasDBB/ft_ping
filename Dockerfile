@@ -14,6 +14,7 @@ RUN apt-get update \
       python \
       nasm \
       iputils-ping \
+      git \
     && apt-get clean
 RUN ( \
     echo 'LogLevel DEBUG2'; \

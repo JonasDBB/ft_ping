@@ -6,7 +6,7 @@
 #include <unistd.h>
 
 #include "ft_ping.h"
-#include "ft_clib.h"
+#include "clib/ft_clib.h"
 
 static unsigned short checksum(void* addr, size_t count) {
     unsigned short* buf = addr;

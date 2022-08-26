@@ -2,11 +2,10 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <errno.h>
-#include <unistd.h>
 #include <sys/time.h>
 
 #include "ft_ping.h"
-#include "ft_clib.h"
+#include "clib/ft_clib.h"
 
 extern bool active;
 extern bool send_next_msg;

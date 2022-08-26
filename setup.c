@@ -7,7 +7,7 @@
 #include <stdlib.h>
 
 #include "ft_ping.h"
-#include "ft_clib.h"
+#include "clib/ft_clib.h"
 
 struct addrinfo* find_addr_info(options_t* opts) {
     struct addrinfo hints;
