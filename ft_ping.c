@@ -19,7 +19,7 @@ static const str_str_pair_t flag_map[] = {
 bool active = true;
 bool send_next_msg = true;
 
-void help(char invalid_flag) {
+static void help(char invalid_flag) {
     if (invalid_flag == 'i') {
         fprintf(stderr, "ft_ping: option requires an argument -- '%c'\n", invalid_flag);
     } else if (invalid_flag) {
@@ -36,21 +36,20 @@ void help(char invalid_flag) {
     exit(EXIT_OTHER);
 }
 
-int get_interval(char* s) {
+static long get_interval(char* s) {
     for (uint i = 0; i < ft_strlen(s); ++i) {
         if (!ft_isnum(s[i])) {
             fprintf(stderr, "ft_ping: bad timing interval: %s\n", s);
             exit(EXIT_OTHER);
         }
     }
-    // TODO: write ft_strtol / ft_stroul
-    return atoi(s);
+    return ft_strtol(s, NULL, 10);
 }
 
-options_t parse_args(int ac, char** av) {
+static options_t parse_args(int ac, char** av) {
     options_t ret_val;
     ft_bzero(&ret_val, sizeof(ret_val));
-    ret_val.interval = -1;
+    ret_val.i_set = false;
     bool prev_was_interval = false;
     for (int i = 1; i < ac; ++i) {
         if (prev_was_interval) {
@@ -72,6 +71,7 @@ options_t parse_args(int ac, char** av) {
                         }
                         prev_was_interval = true;
                         ret_val.interval = get_interval(av[i + 1]);
+                        ret_val.i_set = true;
                         break;
                     case 'v':
                         ret_val.verbose = true;
@@ -94,16 +94,12 @@ options_t parse_args(int ac, char** av) {
     return ret_val;
 }
 
-void end(const char* hostname) {
-#ifndef SILENCE_END
-    printf("--- %s ft_ping statistics ---\n", hostname);
-    printf("%d packets transmitted, %d received, %d%% packet loss, time %fms\n", 0, 0, 0, 0.f);
-    printf("rtt min/avg/max/mdev = %f/%f/%f/%f ms\n", 0.f, 0.f, 0.f, 0.f);
-#else
-    (void)hostname;
-    printf("...results...\n");
-#endif
-//    exit(EXIT_OK);
+void end(stats_t* stats, const char* hostname) {
+    printf("\n--- %s ft_ping statistics ---\n", hostname);
+    printf("%d packets transmitted, %d received, %f%% packet loss, time %.0fms\n",
+           stats->sent, stats->recvd, 1 - (float)stats->recvd / (float)stats->sent * 100,
+           stats->sent > 1 ? stats->total_time : 0);
+    printf("rtt min/avg/max/mdev = %.3f/%.3f/%.3f/%.3f ms\n", stats->min, stats->avg, stats->max, stats->mdev);
 }
 
 int main(int ac, char** av) {
@@ -125,19 +121,23 @@ int main(int ac, char** av) {
     received_msg_t received_msg;
 
     msg_init(icmp, &received_msg);
-    int ping_interval = opts.interval != -1 ? opts.interval : INTERVAL;
+    printf("FT_PING %s (%s) %d(%lu) bytes of data.\n", opts.hostname, static_info.ip_addr_str,
+           PCKT_SIZE, (PCKT_SIZE + sizeof(struct icmphdr) + sizeof(struct iphdr)));
+
+    long ping_interval = opts.i_set ? opts.interval : INTERVAL;
+    stats_t end_stats;
+    ft_bzero(&end_stats, sizeof(end_stats));
     while (active) {
         if (send_next_msg) {
             LOG("send_next_msg");
             send_next_msg = false;
             alarm(ping_interval);
-            ping(sockfd, ai, icmp, &received_msg, &static_info);
-            LOG("done");
+            ping(sockfd, ai, icmp, &received_msg, &static_info, &end_stats);
         }
     }
-    LOG("exiting")
+    end_stats.total_time += (float)(1000 * ping_interval) * (float)(end_stats.sent - 1);
     freeaddrinfo(ai);
     close(sockfd);
-    end(av[0]);
+    end(&end_stats, opts.hostname);
     return EXIT_OK;
 }

@@ -68,7 +68,7 @@ static_info_t set_ip_info(struct addrinfo* ai, options_t* opts)
 {
     static_info_t ret;
 
-    ret.alarm = opts->alarm;
+    ret.alarm = opts->alarm ? '\a' : '\0';
     ft_bzero(ret.ip_addr_str, INET_ADDRSTRLEN);
     struct sockaddr_in* ipn = (struct sockaddr_in*)ai->ai_addr;
     inet_ntop(AF_INET, &ipn->sin_addr, ret.ip_addr_str, sizeof(ret.ip_addr_str));
@@ -76,7 +76,6 @@ static_info_t set_ip_info(struct addrinfo* ai, options_t* opts)
     ft_bzero(ret.host_name, NI_MAXHOST);
     getnameinfo(ai->ai_addr, sizeof(*ai->ai_addr), ret.host_name, sizeof(ret.host_name), 0, 0, 0);
 
-    gettimeofday(ret.start_time, NULL);
     return ret;
 }
 

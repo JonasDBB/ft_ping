@@ -24,4 +24,4 @@ target_link_options(ft_ping PUBLIC
 		)
 
 add_subdirectory(clib)
-target_link_libraries(ft_ping ft_clib)
+target_link_libraries(ft_ping ft_clib m)

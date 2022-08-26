@@ -6,8 +6,7 @@
 #include <netinet/ip_icmp.h>
 #include <netdb.h>
 
-#define SILENCE_END
-#define PCKT_SIZE 64
+#define PCKT_SIZE 56
 #define MAX_RECV_LEN 128
 #define INTERVAL 1
 
@@ -26,8 +25,9 @@ typedef struct str_str_pair_s {
 typedef struct options_s {
     bool verbose;
     bool alarm;
-    int interval;
+    long interval;
     char* hostname;
+    bool i_set;
 } options_t;
 
 typedef struct received_msg_s {
@@ -39,14 +39,20 @@ typedef struct received_msg_s {
 } received_msg_t;
 
 typedef struct static_info_s {
-    struct timeval* start_time;
     char ip_addr_str[INET_ADDRSTRLEN];
     char host_name[NI_MAXHOST];
-    bool alarm;
+    char alarm;
 } static_info_t;
 
-// ft_ping.c
-void end(const char* hostname);
+typedef struct stats_s {
+    unsigned int sent;
+    unsigned int recvd;
+    float min;
+    float max;
+    float avg;
+    float mdev;
+    float total_time;
+} stats_t;
 
 // utils.c
 void sigint_handler(int i);
@@ -54,8 +60,10 @@ void sigalrm_handler(int i);
 void fatal_err(const char* err);
 float get_time_since_in_ms(const struct timeval* first, const struct timeval* second);
 
-// ping.c
-void ping(int sockfd, struct addrinfo* ai, struct icmphdr* icmp, received_msg_t* rec_msg, const static_info_t* info);
+// ping_loop.c
+void ping(int sockfd, struct addrinfo* ai, struct icmphdr* icmp,
+          received_msg_t* rec_msg, const static_info_t* info,
+          stats_t* end_stats);
 
 // setup.c
 struct addrinfo* find_addr_info(options_t* opts);
