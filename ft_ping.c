@@ -4,20 +4,20 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <netinet/ip_icmp.h>
+#include <math.h>
 
 #include "clib/ft_clib.h"
 #include "ft_ping.h"
 
 static const str_str_pair_t flag_map[] = {
         {"<destination>", "dns name or ip address"},
-        {"-a", "use audible ping"},
-        {"-h", "help"},
+        {"-a",            "use audible ping"},
+        {"-h",            "help"},
         {"-i <interval>", "seconds between sending each packet"},
-        {"-v", "verbose"}
+        {"-v",            "verbose"}
 };
 
-bool active = true;
-bool send_next_msg = true;
+loop_t loop = {true, true};
 
 static void help(char invalid_flag) {
     if (invalid_flag == 'i') {
@@ -26,8 +26,8 @@ static void help(char invalid_flag) {
         fprintf(stderr, "ft_ping: invalid option -- '%c'\n", invalid_flag);
     }
     fprintf(stderr, "\nUsage\n"
-           "  ft_ping [options] <destination>\n"
-           "Options:\n");
+                    "  ft_ping [options] <destination>\n"
+                    "Options:\n");
     const unsigned int len = sizeof(flag_map) > 0 ? sizeof(flag_map) / sizeof flag_map[0] : 0;
     for (unsigned int i = 0; i < len; ++i) {
         fprintf(stderr, "  %-15s%s\n", flag_map[i].first, flag_map[i].second);
@@ -94,17 +94,22 @@ static options_t parse_args(int ac, char** av) {
     return ret_val;
 }
 
-void end(stats_t* stats, const char* hostname) {
+static void end(stats_t* stats, const char* hostname, long ping_interval) {
+    double percentage = (1 - (double)stats->recvd / (double)stats->sent) * 100;
+    int prec = (int)percentage == percentage ? 0 : -1;
+
+    double mean = stats->time_sum / (double)stats->recvd;
+    double smean = stats->sum_time_p2 / (double)stats->recvd;
+    stats->mdev = sqrt(smean - (mean * mean));
+    stats->time_sum += (double)(1000 * ping_interval) * (double)(stats->sent - 1);
+
     printf("\n--- %s ft_ping statistics ---\n", hostname);
-    printf("%d packets transmitted, %d received, %f%% packet loss, time %.0fms\n",
-           stats->sent, stats->recvd, 1 - (float)stats->recvd / (float)stats->sent * 100,
-           stats->sent > 1 ? stats->total_time : 0);
+    printf("%d packets transmitted, %d received, %.*f%% packet loss, time %.0fms\n", stats->sent, stats->recvd, prec,
+           percentage, stats->sent > 1 ? stats->time_sum : 0);
     printf("rtt min/avg/max/mdev = %.3f/%.3f/%.3f/%.3f ms\n", stats->min, stats->avg, stats->max, stats->mdev);
 }
 
 int main(int ac, char** av) {
-    print_os_name();
-
     signal(SIGINT, sigint_handler);
     signal(SIGALRM, sigalrm_handler);
 
@@ -121,23 +126,22 @@ int main(int ac, char** av) {
     received_msg_t received_msg;
 
     msg_init(icmp, &received_msg);
-    printf("FT_PING %s (%s) %d(%lu) bytes of data.\n", opts.hostname, static_info.ip_addr_str,
-           PCKT_SIZE, (PCKT_SIZE + sizeof(struct icmphdr) + sizeof(struct iphdr)));
+    printf("FT_PING %s (%s) %d(%lu) bytes of data.\n", opts.hostname, static_info.ip_addr_str, PCKT_SIZE,
+           (PCKT_SIZE + sizeof(struct icmphdr) + sizeof(struct iphdr)));
 
     long ping_interval = opts.i_set ? opts.interval : INTERVAL;
     stats_t end_stats;
     ft_bzero(&end_stats, sizeof(end_stats));
-    while (active) {
-        if (send_next_msg) {
-            LOG("send_next_msg");
-            send_next_msg = false;
+    while (loop.active) {
+        if (loop.send_next_msg) {
+            loop.send_next_msg = false;
             alarm(ping_interval);
             ping(sockfd, ai, icmp, &received_msg, &static_info, &end_stats);
         }
     }
-    end_stats.total_time += (float)(1000 * ping_interval) * (float)(end_stats.sent - 1);
+
     freeaddrinfo(ai);
     close(sockfd);
-    end(&end_stats, opts.hostname);
+    end(&end_stats, opts.hostname, ping_interval);
     return EXIT_OK;
 }

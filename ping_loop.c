@@ -35,56 +35,64 @@ static void send_icmp_message(int sockfd, struct icmphdr* icmp, struct timeval* 
     if (sendret < 0) {
         fatal_err("sendto error");
     }
-    LOG("sendret %d", sendret);
 }
 
-void update_stats(stats_t *stats, float time) {
+void update_stats(stats_t* stats, double time) {
     if (stats->min == 0 && stats->max == 0 && stats->avg == 0) {
         stats->min = time;
         stats->max = time;
         stats->avg = time;
-        stats->total_time = time;
+        stats->time_sum = time;
+        stats->sum_time_p2 = time * time;
         return;
     }
 
     stats->min = stats->min > time ? time : stats->min;
     stats->max = stats->max < time ? time : stats->max;
-    stats->avg = ((((float)stats->recvd - 1) * stats->avg) + time) / (float)stats->recvd;
-    stats->total_time += time;
-    // TODO: mdev calculation
+    stats->avg = ((((double)stats->recvd - 1) * stats->avg) + time) / (double)stats->recvd;
+    stats->time_sum += time;
+    stats->sum_time_p2 += time * time;
 }
 
-void ping(int sockfd, struct addrinfo* ai, struct icmphdr* icmp,
-          received_msg_t* rec_msg, const static_info_t* info,
-          stats_t* end_stats)
-{
+void ping(int sockfd, struct addrinfo* ai, struct icmphdr* icmp, received_msg_t* rec_msg, const static_info_t* info,
+          stats_t* end_stats) {
     struct timeval before;
     struct timeval after;
 
     send_icmp_message(sockfd, icmp, &before, ai);
     ++end_stats->sent;
     ssize_t recvret = recvmsg(sockfd, &rec_msg->msg_hdr, MSG_WAITALL);
-    LOG("recvret %d", recvret);
     gettimeofday(&after, 0);
-    if (recvret < 0) {
-        fatal_err("recvmsg error DO PROPER ERROR INSTEAD");
-    }
 
-    ++end_stats->recvd;
-    if (rec_msg->icmp_reply->type != ICMP_ECHOREPLY) {
-        fprintf(stderr, "icmp reply type is wrong\nNO ERROR YET\n");
+    if (recvret < 0) {
+        if (info->verbose) {
+            fprintf(stderr, "Echo not received.\n");
+        }
+        return;
     }
-    int csfailed = checksum(rec_msg->icmp_reply, PCKT_SIZE);
-    if (csfailed) {
-        fprintf(stderr, "bad checksum\nNO ERROR YET\n");
+    if (rec_msg->icmp_reply->type != ICMP_ECHOREPLY) {
+        if (info->verbose) {
+            fprintf(stderr, "Received icmp message was not echo reply.\n");
+        }
+        return;
+    }
+    if (checksum(rec_msg->icmp_reply, PCKT_SIZE)) {
+        if (info->verbose) {
+            fprintf(stderr, "Incorrect checksum in echo reply.\n");
+        }
+        return;
     }
     if (rec_msg->icmp_reply->un.echo.id != (htons(getpid()))) {
-        fprintf(stderr, "echo meant for other process\nNO ERROR YET\n");
+        if (info->verbose) {
+            fprintf(stderr, "Echo meant for other process.");
+        }
+        return;
     }
+    ++end_stats->recvd;
 
-    float timedif = get_time_since_in_ms(&before, &after);
+    double timedif = get_time_since_in_ms(&before, &after);
     update_stats(end_stats, timedif);
 
-    printf(CLR_GRN"%c%d bytes from %s (%s):""icmp_seq=%d ttl=%d time=%.2f ms"CLR_RESET"\n", info->alarm,
-           PCKT_SIZE, info->host_name, info->ip_addr_str, ntohs(icmp->un.echo.sequence) + 1, rec_msg->ip_hdr->ttl, timedif);
+    printf("%c%d bytes from %s (%s):""icmp_seq=%d ttl=%d time=%.2f ms\n", info->alarm, PCKT_SIZE, info->host_name,
+           info->ip_addr_str, ntohs(icmp->un.echo.sequence) + 1, rec_msg->ip_hdr->ttl, timedif);
 }

@@ -21,6 +21,10 @@ typedef struct str_str_pair_s {
     const char* second;
 } str_str_pair_t;
 
+typedef struct loop_s {
+    bool active;
+    bool send_next_msg;
+} loop_t;
 
 typedef struct options_s {
     bool verbose;
@@ -42,27 +46,28 @@ typedef struct static_info_s {
     char ip_addr_str[INET_ADDRSTRLEN];
     char host_name[NI_MAXHOST];
     char alarm;
+    bool verbose;
 } static_info_t;
 
 typedef struct stats_s {
     unsigned int sent;
     unsigned int recvd;
-    float min;
-    float max;
-    float avg;
-    float mdev;
-    float total_time;
+    double min;
+    double max;
+    double avg;
+    double mdev;
+    double time_sum;
+    double sum_time_p2;
 } stats_t;
 
 // utils.c
 void sigint_handler(int i);
 void sigalrm_handler(int i);
 void fatal_err(const char* err);
-float get_time_since_in_ms(const struct timeval* first, const struct timeval* second);
+double get_time_since_in_ms(const struct timeval* first, const struct timeval* second);
 
 // ping_loop.c
-void ping(int sockfd, struct addrinfo* ai, struct icmphdr* icmp,
-          received_msg_t* rec_msg, const static_info_t* info,
+void ping(int sockfd, struct addrinfo* ai, struct icmphdr* icmp, received_msg_t* rec_msg, const static_info_t* info,
           stats_t* end_stats);
 
 // setup.c
@@ -70,9 +75,5 @@ struct addrinfo* find_addr_info(options_t* opts);
 int socket_setup();
 static_info_t set_ip_info(struct addrinfo* ai, options_t* opts);
 void msg_init(struct icmphdr* icmp, received_msg_t* recv_msg);
-
-// remove later
-void print_os_name();
-
 
 #endif //FT_PING_FT_PING_H

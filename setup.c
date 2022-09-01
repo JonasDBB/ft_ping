@@ -55,20 +55,20 @@ int socket_setup() {
     if (setsockopt(sockfd, IPPROTO_IP, IP_TTL, &ttl_val, sizeof(ttl_val)) != 0) {
         fatal_err("setsockopt err");
     }
-//    struct timeval timeout;
-//    timeout.tv_sec = 1;
-//    timeout.tv_usec = 0;
-//    if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout)) != 0) {
-//        fatal_err("setsockopt err");
-//    }
+    struct timeval timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 950000;
+    if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout)) != 0) {
+        fatal_err("setsockopt err");
+    }
     return sockfd;
 }
 
-static_info_t set_ip_info(struct addrinfo* ai, options_t* opts)
-{
+static_info_t set_ip_info(struct addrinfo* ai, options_t* opts) {
     static_info_t ret;
 
     ret.alarm = opts->alarm ? '\a' : '\0';
+    ret.verbose = opts->verbose;
     ft_bzero(ret.ip_addr_str, INET_ADDRSTRLEN);
     struct sockaddr_in* ipn = (struct sockaddr_in*)ai->ai_addr;
     inet_ntop(AF_INET, &ipn->sin_addr, ret.ip_addr_str, sizeof(ret.ip_addr_str));
@@ -94,5 +94,4 @@ void msg_init(struct icmphdr* icmp, received_msg_t* recv_msg) {
 
     recv_msg->ip_hdr = (struct iphdr*)(recv_msg->iovbuf);
     recv_msg->icmp_reply = (struct icmphdr*)(recv_msg->iovbuf + sizeof(struct iphdr));
-
 }
