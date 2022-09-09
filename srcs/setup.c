@@ -7,7 +7,7 @@
 #include <stdlib.h>
 
 #include "ft_ping.h"
-#include "clib/ft_clib.h"
+#include "ft_clib.h"
 
 struct addrinfo* find_addr_info(options_t* opts) {
     struct addrinfo hints;
@@ -19,7 +19,6 @@ struct addrinfo* find_addr_info(options_t* opts) {
     int ret = getaddrinfo(opts->hostname, NULL, &hints, &ai);
     if (ret != 0) {
         freeaddrinfo(ai);
-        char buf[28];
         switch (ret) {
             case EAI_NONAME:
                 fprintf(stderr, "ft_ping: %s: Name or service not known\n", opts->hostname);
@@ -36,10 +35,12 @@ struct addrinfo* find_addr_info(options_t* opts) {
             case EAI_OVERFLOW:
                 fprintf(stderr, "ft_ping: %s: Argument buffer overflow\n", opts->hostname);
                 exit(EXIT_OTHER);
-            default:
+            default: {
+                char buf[28];
                 ft_bzero(buf, 28);
                 sprintf(buf, "getaddrinfo failed with %d", ret);
                 fatal_err(buf);
+            }
         }
     }
     return ai;
@@ -86,9 +87,9 @@ void msg_init(struct icmphdr* icmp, received_msg_t* recv_msg) {
     icmp->un.echo.id = htons(getpid());
 
     ft_bzero(&recv_msg->msg_hdr, sizeof(struct msghdr));
-    ft_bzero(recv_msg->iovbuf, 128);
+    ft_bzero(recv_msg->iovbuf, MAX_RECV_LEN);
     recv_msg->iov.iov_base = recv_msg->iovbuf;
-    recv_msg->iov.iov_len = 128;
+    recv_msg->iov.iov_len = MAX_RECV_LEN;
     recv_msg->msg_hdr.msg_iov = &recv_msg->iov;
     recv_msg->msg_hdr.msg_iovlen = 1;
 

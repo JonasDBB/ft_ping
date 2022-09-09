@@ -6,7 +6,7 @@
 #include <unistd.h>
 
 #include "ft_ping.h"
-#include "clib/ft_clib.h"
+#include "ft_clib.h"
 
 static unsigned short checksum(void* addr, size_t count) {
     unsigned short* buf = addr;
@@ -59,6 +59,8 @@ void ping(int sockfd, struct addrinfo* ai, struct icmphdr* icmp, received_msg_t*
     struct timeval before;
     struct timeval after;
 
+    ft_bzero(rec_msg->iovbuf, MAX_RECV_LEN);
+
     send_icmp_message(sockfd, icmp, &before, ai);
     ++end_stats->sent;
     ssize_t recvret = recvmsg(sockfd, &rec_msg->msg_hdr, MSG_WAITALL);
@@ -72,7 +74,17 @@ void ping(int sockfd, struct addrinfo* ai, struct icmphdr* icmp, received_msg_t*
     }
     if (rec_msg->icmp_reply->type != ICMP_ECHOREPLY) {
         if (info->verbose) {
-            fprintf(stderr, "Received icmp message was not echo reply.\n");
+            switch (rec_msg->icmp_reply->type) {
+                case ICMP_DEST_UNREACH:
+                    fprintf(stderr, "Destination Unreachable.\n");
+                    break;
+                case ICMP_TIME_EXCEEDED:
+                    fprintf(stderr, "Time exceeded.\n");
+                    break;
+                default:
+                    fprintf(stderr, "Received icmp message was not echo reply but %d isntead.\n", rec_msg->icmp_reply->type);
+                    break;
+            }
         }
         return;
     }

@@ -6,7 +6,7 @@
 #include <netinet/ip_icmp.h>
 #include <math.h>
 
-#include "clib/ft_clib.h"
+#include "ft_clib.h"
 #include "ft_ping.h"
 
 static const str_str_pair_t flag_map[] = {

@@ -5,7 +5,7 @@
 #include <sys/time.h>
 
 #include "ft_ping.h"
-#include "clib/ft_clib.h"
+#include "ft_clib.h"
 
 extern loop_t loop;
 
