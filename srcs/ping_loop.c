@@ -82,7 +82,8 @@ void ping(int sockfd, struct addrinfo* ai, struct icmphdr* icmp, received_msg_t*
                     fprintf(stderr, "Time exceeded.\n");
                     break;
                 default:
-                    fprintf(stderr, "Received icmp message was not echo reply but %d isntead.\n", rec_msg->icmp_reply->type);
+                    fprintf(stderr, "Received icmp message was not echo reply but %d isntead.\n",
+                            rec_msg->icmp_reply->type);
                     break;
             }
         }
@@ -105,6 +106,6 @@ void ping(int sockfd, struct addrinfo* ai, struct icmphdr* icmp, received_msg_t*
     double timedif = get_time_since_in_ms(&before, &after);
     update_stats(end_stats, timedif);
 
-    printf("%c%d bytes from %s (%s):""icmp_seq=%d ttl=%d time=%.2f ms\n", info->alarm, PCKT_SIZE, info->host_name,
-           info->ip_addr_str, ntohs(icmp->un.echo.sequence) + 1, rec_msg->ip_hdr->ttl, timedif);
+    printf("%c%lu bytes from %s (%s):""icmp_seq=%d ttl=%d time=%.2f ms\n", info->alarm, PCKT_SIZE + sizeof(*icmp),
+           info->host_name, info->ip_addr_str, ntohs(icmp->un.echo.sequence) + 1, rec_msg->ip_hdr->ttl, timedif);
 }
