@@ -44,7 +44,7 @@ typedef struct received_msg_s {
 
 typedef struct static_info_s {
     char ip_addr_str[INET_ADDRSTRLEN];
-    char host_name[NI_MAXHOST];
+    char dest_str[INET_ADDRSTRLEN + NI_MAXHOST + 3];
     char alarm;
     bool verbose;
 } static_info_t;
@@ -65,6 +65,7 @@ void sigint_handler(int i);
 void sigalrm_handler(int i);
 void fatal_err(const char* err);
 double get_time_since_in_ms(const struct timeval* first, const struct timeval* second);
+bool is_valid_ipv4_address(const char* s);
 
 // ping_loop.c
 void ping(int sockfd, struct addrinfo* ai, struct icmphdr* icmp, received_msg_t* rec_msg, const static_info_t* info,
@@ -73,7 +74,7 @@ void ping(int sockfd, struct addrinfo* ai, struct icmphdr* icmp, received_msg_t*
 // setup.c
 struct addrinfo* find_addr_info(options_t* opts);
 int socket_setup();
-static_info_t set_ip_info(struct addrinfo* ai, options_t* opts);
+static_info_t set_ip_info(struct addrinfo* ai, options_t* opts, bool arg_is_ipv4addr);
 void msg_init(struct icmphdr* icmp, received_msg_t* recv_msg);
 
 #endif //FT_PING_FT_PING_H

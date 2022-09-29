@@ -28,3 +28,41 @@ void fatal_err(const char* err) {
 double get_time_since_in_ms(const struct timeval* first, const struct timeval* second) {
     return ((double)(second->tv_sec - first->tv_sec) * 1000 + (double)(second->tv_usec - first->tv_usec) / 1000.0f);
 }
+
+bool is_valid_ipv4_address(const char* s) {
+    int n_segment = 0;
+    int n_char = 0;
+    int segm_sum = 0;
+
+    if (!s) {
+        return false;
+    }
+
+    while (*s) {
+        if (*s == '.') {
+            if (n_char == 0) { // '.' as first cahr
+                return false;
+            }
+            if (++n_segment == 4) { // more than 4 segments
+                return false;
+            }
+            n_char = 0;
+            segm_sum = 0;
+            ++s;
+            continue;
+        }
+        if (ft_isnum(*s) == false) { // not digit
+            return false;
+        }
+        segm_sum = segm_sum * 10 + (*s - '0');
+        if (segm_sum > 255) { // n_segment is higher than 255
+            return false;
+        }
+        ++n_char;
+        ++s;
+    }
+    if (n_segment != 3 || n_char == 0) { // not 4 segments or empty string
+        return false;
+    }
+    return true;
+}

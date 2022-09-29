@@ -116,7 +116,7 @@ int main(int ac, char** av) {
     options_t opts = parse_args(ac, av);
     struct addrinfo* ai = find_addr_info(&opts);
     const int sockfd = socket_setup();
-    const static_info_t static_info = set_ip_info(ai, &opts);
+    const static_info_t static_info = set_ip_info(ai, &opts, is_valid_ipv4_address(opts.hostname));
 
     unsigned char buffer[PCKT_SIZE + sizeof(struct iphdr)];
     ft_bzero(buffer, PCKT_SIZE + sizeof(struct iphdr));

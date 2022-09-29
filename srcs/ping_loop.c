@@ -8,6 +8,8 @@
 #include "ft_ping.h"
 #include "ft_clib.h"
 
+extern loop_t loop;
+
 static unsigned short checksum(void* addr, size_t count) {
     unsigned short* buf = addr;
     register long sum = 0;
@@ -63,49 +65,52 @@ void ping(int sockfd, struct addrinfo* ai, struct icmphdr* icmp, received_msg_t*
 
     send_icmp_message(sockfd, icmp, &before, ai);
     ++end_stats->sent;
-    ssize_t recvret = recvmsg(sockfd, &rec_msg->msg_hdr, MSG_WAITALL);
-    gettimeofday(&after, 0);
+    while (loop.send_next_msg == false) {
+        ssize_t recvret = recvmsg(sockfd, &rec_msg->msg_hdr, MSG_WAITALL);
+        gettimeofday(&after, 0);
 
-    if (recvret < 0) {
-        if (info->verbose) {
-            fprintf(stderr, "Echo not received.\n");
-        }
-        return;
-    }
-    if (rec_msg->icmp_reply->type != ICMP_ECHOREPLY) {
-        if (info->verbose) {
-            switch (rec_msg->icmp_reply->type) {
-                case ICMP_DEST_UNREACH:
-                    fprintf(stderr, "Destination Unreachable.\n");
-                    break;
-                case ICMP_TIME_EXCEEDED:
-                    fprintf(stderr, "Time exceeded.\n");
-                    break;
-                default:
-                    fprintf(stderr, "Received icmp message was not echo reply but %d isntead.\n",
-                            rec_msg->icmp_reply->type);
-                    break;
+        if (recvret < 0) {
+            if (info->verbose) {
+                fprintf(stderr, "Echo not received.\n");
             }
+            continue;
         }
-        return;
-    }
-    if (checksum(rec_msg->icmp_reply, PCKT_SIZE)) {
-        if (info->verbose) {
-            fprintf(stderr, "Incorrect checksum in echo reply.\n");
+        if (rec_msg->icmp_reply->un.echo.id != (htons(getpid()))) {
+            if (info->verbose) {
+                fprintf(stderr, "Echo meant for other process.\n");
+            }
+            continue;
         }
-        return;
-    }
-    if (rec_msg->icmp_reply->un.echo.id != (htons(getpid()))) {
-        if (info->verbose) {
-            fprintf(stderr, "Echo meant for other process.");
+        if (rec_msg->icmp_reply->type != ICMP_ECHOREPLY) {
+            if (info->verbose) {
+                switch (rec_msg->icmp_reply->type) {
+                    case ICMP_DEST_UNREACH:
+                        fprintf(stderr, "Destination Unreachable.\n");
+                        break;
+                    case ICMP_TIME_EXCEEDED:
+                        fprintf(stderr, "Time exceeded.\n");
+                        break;
+                    default:
+                        fprintf(stderr, "Received icmp message was not echo reply but %d isntead.\n",
+                                rec_msg->icmp_reply->type);
+                        break;
+                }
+            }
+            continue;
         }
-        return;
-    }
-    ++end_stats->recvd;
+        if (checksum(rec_msg->icmp_reply, PCKT_SIZE)) {
+            if (info->verbose) {
+                fprintf(stderr, "Incorrect checksum in echo reply.\n");
+            }
+            return;
+        }
+        ++end_stats->recvd;
 
-    double timedif = get_time_since_in_ms(&before, &after);
-    update_stats(end_stats, timedif);
+        double timedif = get_time_since_in_ms(&before, &after);
+        update_stats(end_stats, timedif);
 
-    printf("%c%lu bytes from %s (%s):""icmp_seq=%d ttl=%d time=%.2f ms\n", info->alarm, PCKT_SIZE + sizeof(*icmp),
-           info->host_name, info->ip_addr_str, ntohs(icmp->un.echo.sequence) + 1, rec_msg->ip_hdr->ttl, timedif);
+        printf("%c%lu bytes from %s: icmp_seq=%d ttl=%d time=%.2f ms\n", info->alarm, PCKT_SIZE + sizeof(*icmp),
+               info->dest_str, ntohs(icmp->un.echo.sequence) + 1, rec_msg->ip_hdr->ttl, timedif);
+        break;
+    }
 }

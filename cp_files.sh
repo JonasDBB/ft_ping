@@ -1,5 +1,5 @@
 mkdir /tmp/dockercopy
-rsync -avzh ~/workspace/Projects/ft_ping/ /tmp/dockercopy/ \
+rsync -avzh ~/workspace/Projects/ft_ping/ /tmp/dockercopy \
  --exclude cmake-build-*/ \
  --exclude .git/ \
  --exclude .idea/ \
