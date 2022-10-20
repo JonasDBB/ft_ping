@@ -2,9 +2,17 @@ NAME = ft_ping
 SRCDIR = $(shell pwd)
 BUILDDIR = $(SRCDIR)/build
 
-all: $(NAME)
+.PHONY: check-and-reinit-submodules
 
-$(NAME):
+all: $(NAME) check-and-reinit-submodules
+
+check-and-reinit-submodules:
+	git config --global --add safe.directory '*'
+	@if git submodule status | egrep -q '^[-]|^[+]' ; then \
+			git submodule update --init; \
+	fi
+
+$(NAME): check-and-reinit-submodules
 	@mkdir -p $(BUILDDIR)
 	cmake -B$(BUILDDIR) -S$(SRCDIR)
 	$(MAKE) -C $(BUILDDIR)
