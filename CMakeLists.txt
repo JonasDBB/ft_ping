@@ -11,7 +11,7 @@ add_subdirectory(srcs)
 
 include_directories(
 		${CMAKE_SOURCE_DIR}/incl
-		${CMAKE_SOURCE_DIR}/clib EXCLUDE_FROM_ALL
+		${CMAKE_SOURCE_DIR}/clib/ft_clib EXCLUDE_FROM_ALL
 )
 
 target_compile_options(ft_ping PUBLIC
